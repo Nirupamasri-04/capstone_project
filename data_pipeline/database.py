@@ -1,13 +1,39 @@
 import sqlite3
 import csv
 
-# Connect to database
 connection = sqlite3.connect("data_pipeline/books.db")
 
 cursor = connection.cursor()
 
+cursor.execute(
+    """
+    CREATE TABLE IF NOT EXISTS categories (
+        category_id INTEGER PRIMARY KEY,
+        category TEXT UNIQUE
+    )
+    """
+)
 
-# Read cleaned CSV file
+cursor.execute(
+    """
+    CREATE TABLE IF NOT EXISTS books (
+        book_id INTEGER PRIMARY KEY,
+        title TEXT,
+        price_gbp REAL,
+        rating INTEGER,
+        in_stock INTEGER,
+        price_inr REAL,
+        category_id INTEGER,
+        FOREIGN KEY (category_id) REFERENCES categories(category_id)
+    )
+    """
+)
+
+cursor.execute("DELETE FROM books")
+cursor.execute("DELETE FROM categories")
+
+connection.commit()
+
 with open(
     "data_pipeline/cleaned_books.csv",
     "r",
@@ -21,8 +47,6 @@ with open(
 
 print("Number of books:", len(rows))
 
-
-# Add categories
 categories = []
 
 for row in rows:
@@ -37,15 +61,13 @@ for i in range(len(categories)):
 
     cursor.execute(
         """
-        INSERT OR IGNORE INTO categories
+        INSERT INTO categories
         (category_id, category)
         VALUES (?, ?)
         """,
         (i + 1, categories[i])
     )
 
-
-# Add books
 for i in range(len(rows)):
 
     row = rows[i]
@@ -79,8 +101,6 @@ for i in range(len(rows)):
 
 connection.commit()
 
-
-# Check number of books
 cursor.execute("SELECT COUNT(*) FROM books")
 
 count = cursor.fetchone()[0]
